@@ -88,22 +88,27 @@ export default defineComponent({
             { onAfterLeave: () => { nuxtApp.callHook('page:transition:finish', routeProps.Component) } }
           ].filter(Boolean))
 
-          vnode = _wrapIf(Transition, hasTransition && transitionProps,
-            wrapInKeepAlive(props.keepalive ?? routeProps.route.meta.keepalive ?? (defaultKeepaliveConfig as KeepAliveProps), h(Suspense, {
-              suspensible: true,
-              onPending: () => nuxtApp.callHook('page:start', routeProps.Component),
-              onResolve: () => { nextTick(() => nuxtApp.callHook('page:finish', routeProps.Component).finally(done)) }
-            }, {
-              default: () => h(RouteProvider, {
-                key: key || undefined,
-                vnode: routeProps.Component,
-                route: routeProps.route,
-                renderKey: key || undefined,
-                trackRootNodes: hasTransition,
-                vnodeRef: pageRef
-              })
-            })
-            )).default()
+          const componentVNode = h(routeProps.Component, { ref: pageRef })
+          vnode = h(RouteProvider, {
+            key: key || undefined,
+            vnode: componentVNode,
+            route: routeProps.route,
+            renderKey: key || undefined,
+            trackRootNodes: hasTransition
+          }, _wrapIf(
+            Transition,
+            hasTransition && transitionProps,
+            wrapInKeepAlive(
+              props.keepalive ?? routeProps.route.meta.keepalive ?? defaultKeepaliveConfig as KeepAliveProps,
+              h(Suspense, {
+                suspensible: true,
+                onPending: () => nuxtApp.callHook('page:start', routeProps.Component),
+                onResolve: () => {
+                  nextTick(() => nuxtApp.callHook('page:finish', routeProps.Component).finally(done))
+                }
+              }, componentVNode)
+            )
+          ))
 
           return vnode
         }
