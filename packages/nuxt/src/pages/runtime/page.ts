@@ -88,9 +88,8 @@ export default defineComponent({
             { onAfterLeave: () => { nuxtApp.callHook('page:transition:finish', routeProps.Component) } }
           ].filter(Boolean))
 
-          const componentVNode = h(routeProps.Component, { ref: pageRef })
+          const componentVNode = h(routeProps.Component, { ref: pageRef, key: key || undefined })
           vnode = h(RouteProvider, {
-            key: key || undefined,
             vnode: componentVNode,
             route: routeProps.route,
             renderKey: key || undefined,
@@ -102,6 +101,7 @@ export default defineComponent({
               props.keepalive ?? routeProps.route.meta.keepalive ?? defaultKeepaliveConfig as KeepAliveProps,
               h(Suspense, {
                 suspensible: true,
+                key: key || undefined,
                 onPending: () => nuxtApp.callHook('page:start', routeProps.Component),
                 onResolve: () => {
                   nextTick(() => nuxtApp.callHook('page:finish', routeProps.Component).finally(done))

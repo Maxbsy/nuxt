@@ -1,4 +1,4 @@
-import { defineComponent, nextTick, onMounted, provide, shallowReactive } from 'vue'
+import { defineComponent, nextTick, onMounted, provide, shallowReactive, watch } from 'vue'
 import type { VNode } from 'vue'
 import type { RouteLocation, RouteLocationNormalizedLoaded } from '#vue-router'
 import { PageRouteSymbol } from './injections'
@@ -19,16 +19,25 @@ export const RouteProvider = defineComponent({
   },
   setup (props, { slots }) {
     // Prevent reactivity when the page will be rerendered in a different suspense fork
-    const previousKey = props.renderKey
-    const previousRoute = props.route
+    let previousKey = props.renderKey
+    let previousRoute = props.route
 
     // Provide a reactive route within the page
     const route = {} as RouteLocation
     for (const key in props.route) {
       Object.defineProperty(route, key, {
-        get: () => previousKey === props.renderKey ? props.route[key as keyof RouteLocationNormalizedLoaded] : previousRoute[key as keyof RouteLocationNormalizedLoaded]
+        get: () => {
+          return previousKey === props.renderKey ? props.route[key as keyof RouteLocationNormalizedLoaded] : previousRoute[key as keyof RouteLocationNormalizedLoaded]
+        }
       })
     }
+
+    watch(() => props.renderKey, (newKey, oldKey) => {
+      if (newKey !== oldKey) {
+        previousKey = props.renderKey
+        previousRoute = props.route
+      }
+    }, { flush: 'sync' })
 
     provide(PageRouteSymbol, shallowReactive(route))
 
