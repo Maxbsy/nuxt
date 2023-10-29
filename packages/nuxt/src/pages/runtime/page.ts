@@ -1,4 +1,4 @@
-import { Suspense, Transition, defineComponent, h, inject, nextTick, ref } from 'vue'
+import { Suspense, Transition, defineComponent, h, inject, nextTick, onMounted, ref } from 'vue'
 import type { KeepAliveProps, TransitionProps, VNode } from 'vue'
 import { RouterView } from '#vue-router'
 import { defu } from 'defu'
@@ -45,8 +45,21 @@ export default defineComponent({
 
     const _layoutMeta = inject(LayoutMetaSymbol, null)
     let vnode: VNode
+    let componentVNode: VNode
+    let trackRootNodes = false
 
     const done = nuxtApp.deferHydration()
+
+    if (import.meta.dev && import.meta.client) {
+      onMounted(() => {
+        nextTick(() => {
+          if (['#comment', '#text'].includes(vnode?.el?.nodeName) && trackRootNodes) {
+            const filename = (componentVNode?.type as any).__file
+            console.warn(`[nuxt] \`${filename}\` does not have a single root node and will cause errors when navigating between routes.`)
+          }
+        })
+      })
+    }
 
     return () => {
       return h(RouterView, { name: props.name, route: props.route, ...attrs }, {
@@ -81,6 +94,7 @@ export default defineComponent({
           const key = generateRouteKey(routeProps, props.pageKey)
 
           const hasTransition = !!(props.transition ?? routeProps.route.meta.pageTransition ?? defaultPageTransition)
+          trackRootNodes = hasTransition
           const transitionProps = hasTransition && _mergeTransitionProps([
             props.transition,
             routeProps.route.meta.pageTransition,
@@ -88,12 +102,10 @@ export default defineComponent({
             { onAfterLeave: () => { nuxtApp.callHook('page:transition:finish', routeProps.Component) } }
           ].filter(Boolean))
 
-          const componentVNode = h(routeProps.Component, { ref: pageRef, key: key || undefined })
+          componentVNode = h(routeProps.Component, { ref: pageRef, key: key || undefined })
           vnode = h(RouteProvider, {
-            vnode: componentVNode,
             route: routeProps.route,
-            renderKey: key || undefined,
-            trackRootNodes: hasTransition
+            renderKey: key || undefined
           }, _wrapIf(
             Transition,
             hasTransition && transitionProps,
