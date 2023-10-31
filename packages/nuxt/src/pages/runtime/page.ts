@@ -122,7 +122,9 @@ export default defineComponent({
             )
           ))
 
-          ;(vnode.type as any).__hmrId = (componentVNode.type as any).__hmrId
+          if (import.meta.dev) {
+            (vnode.type as any).__hmrId = (componentVNode.type as any).__hmrId
+          }
 
           return vnode
         }
