@@ -122,6 +122,8 @@ export default defineComponent({
             )
           ))
 
+          ;(vnode.type as any).__hmrId = (componentVNode.type as any).__hmrId
+
           return vnode
         }
       })
